@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工资条生成器</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,sans-serif;margin:0;padding:0}
+body{background:#f4f6f8;padding:16px;color:#333}
+.container{max-width:900px;margin:0 auto}
+.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px #00000012}
+h2{text-align:center;margin-bottom:18px;color:#222}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:14px;margin-bottom:4px}
+input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px}
+.btns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+button{flex:1;padding:12px;border:none;border-radius:6px;font-size:15px;cursor:pointer}
+#gen{background:#2563eb;color:#fff}
+#print{background:#10b981;color:#fff}
+#reset{background:#ef4444;color:#fff}
+/* 选项控制区 */
+.check-group{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.check-item{display:flex;align-items:center;gap:4px;font-size:14px}
+/* 工资条预览 */
+#preview{display:none;margin-top:20px}
+.wage-slip{border:1px solid #333;padding:24px}
+.wage-slip h3{text-align:center;margin-bottom:16px}
+.slip-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #ccc}
+.total{font-weight:bold;font-size:17px;color:#d92525}
+.sign-area{margin-top:20px;padding-top:15px;border-top:1px dashed #ccc;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media print{
+    body{background:#fff}
+    .card:not(#preview){display:none}
+    #preview{display:block}
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h2>工资条生成器</h2>
+        <!-- 显示隐藏控制 -->
+        <div class="check-group">
+            <div class="check-item"><input type="checkbox" id="showBase" checked><label for="showBase">基本工资</label></div>
+            <div class="check-item"><input type="checkbox" id="showBonus" checked><label for="showBonus">绩效工资</label></div>
+            <div class="check-item"><input type="checkbox" id="showSubsidy" checked><label for="showSubsidy">补贴</label></div>
+            <div class="check-item"><input type="checkbox" id="showOtherAdd" checked><label for="showOtherAdd">其他加项</label></div>
+            <div class="check-item"><input type="checkbox" id="showSocial" checked><label for="showSocial">社保个人</label></div>
+            <div class="check-item"><input type="checkbox" id="showFund" checked><label for="showFund">公积金个人</label></div>
+            <div class="check-item"><input type="checkbox" id="showTax" checked><label for="showTax">个税</label></div>
+            <div class="check-item"><input type="checkbox" id="showDeduct" checked><label for="showDeduct">其他扣款</label></div>
+        </div>
+        <div class="grid">
+            <div>
+                <label>员工姓名</label>
+                <input id="name" type="text">
+            </div>
+            <div>
+                <label>工号</label>
+                <input id="empId" type="text">
+            </div>
+            <div>
+                <label>所属部门</label>
+                <input id="dept" type="text">
+            </div>
+            <div>
+                <label>工资月份</label>
+                <input id="month" type="month">
+            </div>
+            <div>
+                <label>发放单位</label>
+                <input id="company" type="text">
+            </div>
+            <div>
+                <label>收单机构</label>
+                <input id="org" type="text">
+            </div>
+            <div>
+                <label>发放人</label>
+                <input id="sender" type="text">
+            </div>
+            <div>
+                <label>发放中间人</label>
+                <input id="middleMan" type="text">
+            </div>
+            <div>
+                <label>基本工资</label>
+                <input id="base" type="number" value="0">
+            </div>
+            <div>
+                <label>绩效工资</label>
+                <input id="bonus" type="number" value="0">
+            </div>
+            <div>
+                <label>补贴（餐补/交通等）</label>
+                <input id="subsidy" type="number" value="0">
+            </div>
+            <div>
+                <label>其他加项</label>
+                <input id="otherAdd" type="number" value="0">
+            </div>
+            <div>
+                <label>社保个人部分</label>
+                <input id="social" type="number" value="0">
+            </div>
+            <div>
+                <label>公积金个人部分</label>
+                <input id="fund" type="number" value="0">
+            </div>
+            <div>
+                <label>个税</label>
+                <input id="tax" type="number" value="0">
+            </div>
+            <div>
+                <label>其他扣款</label>
+                <input id="deduct" type="number" value="0">
+            </div>
+        </div>
+        <div class="btns">
+            <button id="gen">生成工资条</button>
+            <button id="print">打印/导出PDF</button>
+            <button id="reset">清空</button>
+        </div>
+    </div>
+
+    <div class="card" id="preview">
+        <div class="wage-slip">
+            <h3>工资条</h3>
+            <div class="slip-row"><span>发放单位：</span><span id="p-company"></span></div>
+            <div class="slip-row"><span>收单机构：</span><span id="p-org"></span></div>
+            <div class="slip-row"><span>员工姓名：</span><span id="p-name"></span></div>
+            <div class="slip-row"><span>工号：</span><span id="p-empId"></span></div>
+            <div class="slip-row"><span>部门：</span><span id="p-dept"></span></div>
+            <div class="slip-row"><span>发放月份：</span><span id="p-month"></span></div>
+
+            <div class="slip-row" id="r-base"><span>基本工资：</span><span id="p-base"></span></div>
+            <div class="slip-row" id="r-bonus"><span>绩效工资：</span><span id="p-bonus"></span></div>
+            <div class="slip-row" id="r-subsidy"><span>补贴：</span><span id="p-subsidy"></span></div>
+            <div class="slip-row" id="r-otherAdd"><span>其他加项：</span><span id="p-otherAdd"></span></div>
+            <div class="slip-row" id="r-social"><span>社保个人：</span><span id="p-social"></span></div>
+            <div class="slip-row" id="r-fund"><span>公积金个人：</span><span id="p-fund"></span></div>
+            <div class="slip-row" id="r-tax"><span>个税：</span><span id="p-tax"></span></div>
+            <div class="slip-row" id="r-deduct"><span>其他扣款：</span><span id="p-deduct"></span></div>
+
+            <div class="slip-row total"><span>实发工资：</span><span id="p-real"></span></div>
+
+            <div class="sign-area">
+                <div>发放人：<span id="p-sender"></span></div>
+                <div>发放中间人：<span id="p-middleMan"></span></div>
+                <div>员工签字：___________</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
+
+$("#gen").onclick = ()=>{
+    const name = $("#name").value;
+    const empId = $("#empId").value;
+    const dept = $("#dept").value;
+    const month = $("#month").value;
+    const company = $("#company").value;
+    const org = $("#org").value;
+    const sender = $("#sender").value;
+    const middleMan = $("#middleMan").value;
+
+    const base = Number($("#base").value||0);
+    const bonus = Number($("#bonus").value||0);
+    const subsidy = Number($("#subsidy").value||0);
+    const otherAdd = Number($("#otherAdd").value||0);
+
+    const social = Number($("#social").value||0);
+    const fund = Number($("#fund").value||0);
+    const tax = Number($("#tax").value||0);
+    const deduct = Number($("#deduct").value||0);
+
+    const totalAdd = base + bonus + subsidy + otherAdd;
+    const totalSub = social + fund + tax + deduct;
+    const real = totalAdd - totalSub;
+
+    $("#p-name").innerText = name;
+    $("#p-empId").innerText = empId;
+    $("#p-dept").innerText = dept;
+    $("#p-month").innerText = month;
+    $("#p-company").innerText = company;
+    $("#p-org").innerText = org;
+    $("#p-sender").innerText = sender;
+    $("#p-middleMan").innerText = middleMan;
+
+    $("#p-base").innerText = base.toFixed(2);
+    $("#p-bonus").innerText = bonus.toFixed(2);
+    $("#p-subsidy").innerText = subsidy.toFixed(2);
+    $("#p-otherAdd").innerText = otherAdd.toFixed(2);
+    $("#p-social").innerText = social.toFixed(2);
+    $("#p-fund").innerText = fund.toFixed(2);
+    $("#p-tax").innerText = tax.toFixed(2);
+    $("#p-deduct").innerText = deduct.toFixed(2);
+    $("#p-real").innerText = real.toFixed(2);
+
+    // 控制显示隐藏
+    $("#r-base").style.display = $("#showBase").checked ? "flex":"none";
+    $("#r-bonus").style.display = $("#showBonus").checked ? "flex":"none";
+    $("#r-subsidy").style.display = $("#showSubsidy").checked ? "flex":"none";
+    $("#r-otherAdd").style.display = $("#showOtherAdd").checked ? "flex":"none";
+    $("#r-social").style.display = $("#showSocial").checked ? "flex":"none";
+    $("#r-fund").style.display = $("#showFund").checked ? "flex":"none";
+    $("#r-tax").style.display = $("#showTax").checked ? "flex":"none";
+    $("#r-deduct").style.display = $("#showDeduct").checked ? "flex":"none";
+
+    $("#preview").style.display = "block";
+}
+
+$("#print").onclick = ()=>{
+    if($("#preview").style.display === "none") alert("请先生成工资条！");
+    else window.print();
+}
+
+$("#reset").onclick = ()=>{
+    $$("input").forEach(i=>{
+        if(i.type !== "checkbox") i.value="";
+        else i.checked = true;
+    });
+    $("#preview").style.display = "none";
+}
+</script>
+</body>
+</html>
